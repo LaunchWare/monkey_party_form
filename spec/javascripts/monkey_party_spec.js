@@ -1,3 +1,7 @@
+window.alert = function(){  
+  console.log(arguments[0]);  
+}
+
 describe("a monkey party form", function(){
   beforeEach(function(){
     this.subject = new MonkeyParty.EmailForm({
@@ -14,6 +18,16 @@ describe("a monkey party form", function(){
       this.subject.submit();
       this.server.respond();
     }
+
+    this.buildForm = function(emailValue){
+      var $emailInput = jQuery("<input>").
+        attr("type", "text").
+        attr("name", "subscriber[email]").
+        val(emailValue);
+
+      return jQuery("<form>").
+        append($emailInput);
+    };
   }); 
 
   it("has a settable url", function(){
@@ -80,9 +94,75 @@ describe("a monkey party form", function(){
         success: success
       });
     });
-  }); 
 
+    it("passes validation with a valid email", function(){
+      var $form = this.buildForm("user@example.com");
+      spyOn(window, "alert");
+      this.subject = new MonkeyParty.EmailForm({
+        el: $form,
+        validation: 'alert'
+      });
+
+      this.subject.submit();
+      expect(window.alert.called).toBeFalsy();
+    });
+  }); 
+ 
   describe("submitting an invalid form", function(){
-    it("validates the email address");
+    it("validates the presence email address", function() {
+      var $form = this.buildForm("");
+
+      spyOn(window, "alert");
+      this.subject = new MonkeyParty.EmailForm({
+        el: $form,
+        validation: 'alert'
+      });
+      this.subject.submit();
+      expect(window.alert).toHaveBeenCalled();
+
+    });
+
+    it("validates the format of the email", function(){
+      var $form = this.buildForm("badEmail"); 
+      spyOn(window, "alert");
+      this.subject = new MonkeyParty.EmailForm({
+        el: $form,
+        validation: 'alert'
+      });
+      this.subject.submit();
+      expect(window.alert).toHaveBeenCalled();
+    });
+
+    it("allows for a custom validation mechanism that gets fired", function(){
+      var $form = this.buildForm("badEmail");
+      var customVal = {};
+      customVal.val = function(errors){};
+      spyOn(customVal, "val");
+
+      this.subject = new MonkeyParty.EmailForm({
+        el: $form,
+        validation: customVal.val
+      });
+
+      this.subject.submit();
+      expect(customVal.val).toHaveBeenCalled();
+    });
+
+    it("calls an error callback when an error occurs", function(){
+      var error = {};
+      error.callback = function(){};
+      spyOn(error, "callback");
+      
+      this.server = sinon.fakeServer.create();
+      this.subject = new MonkeyParty.EmailForm({
+        el: jQuery("<form>"),
+        error: error.callback
+      });
+
+      this.submitAndRespond([422, {}, {}]);
+
+      expect(error.callback).toHaveBeenCalled();
+      this.server.restore();
+    });
   });
 });
