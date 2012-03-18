@@ -1,12 +1,15 @@
-var MonkeyParty = {};
+window.MonkeyParty = {};
 
-MonkeyParty.EmailForm = function(options){
+window.MonkeyParty.EmailForm = function(options){
   options = options || {};
   this.url = options.url || "/list/emails.json";
   this.el = options.el;
   this.successCallback = options.success;
   this.errorCallback = options.error;
   this.validation = options.validation || 'alert';
+  this.startCallback = options.start;
+  this.completeCallback = options.complete;
+
 
   if(this.validation == 'alert'){
     this.validationCallback = function(msgArray){
@@ -16,7 +19,7 @@ MonkeyParty.EmailForm = function(options){
   else {
     this.validationCallback = this.validation
   }
-  
+
   this.handleSuccess = function(subscriber){
     if(this.successCallback){
       this.successCallback(subscriber);
@@ -26,6 +29,18 @@ MonkeyParty.EmailForm = function(options){
   this.handleError = function(jqXHR, textStatus, errorThrown){
     if(this.errorCallback){
       this.errorCallback(jqXHR, textStatus, errorThrown);
+    }
+  };
+
+  this.submitStarted = function(){
+    if(this.startCallback){
+      this.startCallback();
+    }
+  };
+
+  this.submitComplete = function(){
+    if(this.completeCallback){
+      this.completeCallback();
     }
   };
 
@@ -56,12 +71,13 @@ MonkeyParty.EmailForm = function(options){
     }
 
     this.validate();
-
+    this.submitStarted();
     jQuery.ajax({
       statusCode: {
         201: jQuery.proxy(this.handleSuccess, this),
       },
       error: jQuery.proxy(this.handleError, this),
+      complete: jQuery.proxy(this.submitComplete, this),
       url: this.url,
       type: "POST",
       data: jQuery(this.el).serialize(),

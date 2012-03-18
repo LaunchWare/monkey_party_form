@@ -1,5 +1,5 @@
 window.alert = function(){  
-  console.log(arguments[0]);  
+  // console.log(arguments[0]);
 }
 
 describe("a monkey party form", function(){
@@ -163,6 +163,34 @@ describe("a monkey party form", function(){
 
       expect(error.callback).toHaveBeenCalled();
       this.server.restore();
+    });
+
+    it("calls a started callback when submission starts", function(){
+      var cb = {};
+      cb.callback = function(){};
+      spyOn(cb, "callback");
+      this.server = sinon.fakeServer.create();
+      this.subject = new MonkeyParty.EmailForm({
+        el: jQuery("<form>"),
+        start: cb.callback
+      });
+
+      this.subject.submit();
+      expect(cb.callback).toHaveBeenCalled();
+    });
+
+    it("calls a complete callback when submission completes", function(){
+      var cb = {};
+      cb.callback = function(){};
+      spyOn(cb, "callback");
+      this.server = sinon.fakeServer.create();
+      this.subject = new MonkeyParty.EmailForm({
+        el: jQuery("<form>"),
+        complete: cb.callback
+      });
+
+      this.submitAndRespond([201, {}, {}]);
+      expect(cb.callback).toHaveBeenCalled();
     });
   });
 });
